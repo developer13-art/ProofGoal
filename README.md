@@ -47,12 +47,12 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 ## 📸 Product Tour / Screenshots
 
 <details open>
-<summary><strong>Home</strong> — live fixtures, scores, and match-time progression</summary>
+<summary><strong>Home</strong> — Home</summary>
 <br>
 
 ![Matches page](home.png)
 
-*Caption: e.g. "Live match view showing progressive event reveal."*
+*Caption: e.g. "Landing home page"*
 
 </details>
 <summary><strong>🏟️ Matches</strong> — live fixtures, scores, and match-time progression</summary>
