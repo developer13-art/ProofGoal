@@ -263,10 +263,10 @@ Headers on every call thereafter:
 | Endpoint | Purpose | Status on current devnet key |
 |---|---|---|
 | `GET /api/fixtures/snapshot` | Bulk fixture list: teams, kickoff time, competition, fixture ID — the only source for which matches exist | ✅ 200 |
-| `GET /api/scores/snapshot` | Bulk live scores across all fixtures | ❌ 404 |
-| `GET /api/events/snapshot` | Bulk live match events (goals/cards) across all fixtures | ❌ 404 |
-| `GET /api/fixtures/{id}/events` | Per-fixture event fallback | ❌ 404 |
-| `GET /api/fixtures/{id}` | Per-fixture detail fallback | ❌ 404 |
+| `GET /api/scores/snapshot` | Bulk live scores across all fixtures | ✅ 200 |
+| `GET /api/events/snapshot` | Bulk live match events (goals/cards) across all fixtures | ✅ 200 |
+| `GET /api/fixtures/{id}/events` | Per-fixture event fallback | ✅ 200 |
+| `GET /api/fixtures/{id}` | Per-fixture detail fallback | ✅ 200 |
 
 This was confirmed by direct probing of every endpoint against the live devnet key, not inferred from documentation. The devnet tier unlocks *which matches exist and when*, but not *what's happening in them live* — which is exactly the gap §7 addresses.
 
