@@ -1,0 +1,7 @@
+{
+  "workspaces": [
+    "artifacts/*",
+    "lib/*",
+    "scripts"
+  ]
+}
