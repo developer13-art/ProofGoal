@@ -16,23 +16,17 @@
 
 ---
 
-### The 30-second pitch
+### Introduction
 
 Every other prediction-market demo you'll see today either **hardcodes the outcome** or **never actually moves money**. ProofGoal does neither. Real SOL changes hands, verified against the Solana ledger transaction-by-transaction (§12) — and it is *structurally impossible* for a market, an insurance policy, or a governance vote to settle against a result that hasn't first been written to an immutable, hash-anchored proof record. Freeze the database mid-match and nothing pays out wrong; there's no path from "match ends" to "money moves" that skips the proof.
 
 That's not a feature bullet point. It's the one invariant the entire codebase is built to protect — see §2.
 
-<div align="center">
-
-**[📸 Jump to Screenshots](#-product-tour--screenshots)** · **[🧠 Read the Core Invariant](#2-the-solution--how-proofgoal-is-different)** · **[🏗️ See the Architecture](#3-system-architecture)** · **[🔐 On-Chain Verification](#12-on-chain-payment-verification--replay-protection)**
-
-</div>
-
 ---
 
 ## Table of Contents
 
-- [📸 Product Tour / Screenshots](#-product-tour--screenshots)
+- [Product Tour / Screenshots](#-product-tour--screenshots)
 1. [The Problem](#1-the-problem)
 2. [The Solution — How ProofGoal Is Different](#2-the-solution--how-proofgoal-is-different)
 3. [System Architecture](#3-system-architecture)
@@ -52,13 +46,19 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 
 ## 📸 Product Tour / Screenshots
 
-> Drop your screenshots into `docs/screenshots/` using the file names below — each placeholder will render automatically once the image exists at that path. No other edits needed.
-
 <details open>
+<summary><strong>Home</strong> — live fixtures, scores, and match-time progression</summary>
+<br>
+
+![Matches page](matches.png)
+
+*Caption: e.g. "Live match view showing progressive event reveal."*
+
+</details>
 <summary><strong>🏟️ Matches</strong> — live fixtures, scores, and match-time progression</summary>
 <br>
 
-![Matches page](./docs/screenshots/matches.png)
+![Matches page](matches.png)
 
 *Caption: e.g. "Live match view showing progressive event reveal."*
 
@@ -68,7 +68,8 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 <summary><strong>📈 Markets</strong> — winner / over-under / both-teams-to-score, position lifecycle</summary>
 <br>
 
-![Markets page](./docs/screenshots/markets.png)
+![Markets page](markets.png)
+![Markets page](market-exec.png)
 
 *Caption: e.g. "Placing a position against a market selection."*
 
@@ -78,7 +79,7 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 <summary><strong>🛡️ Insurance</strong> — parametric policies and trigger conditions</summary>
 <br>
 
-![Insurance page](./docs/screenshots/insurance.png)
+![Insurance page](insurance.png)
 
 *Caption: e.g. "Buying a favorite_team_loss policy ahead of kickoff."*
 
@@ -88,7 +89,7 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 <summary><strong>💧 Liquidity Pools</strong> — deposits, continuous yield accrual, withdrawals</summary>
 <br>
 
-![Liquidity page](./docs/screenshots/liquidity.png)
+![Liquidity page](governance-and-liquidity-pool.png)
 
 *Caption: e.g. "Pool APR and accrued yield updating in real time."*
 
@@ -98,7 +99,7 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 <summary><strong>🗳️ Governance</strong> — balance-weighted voting and proposal resolution</summary>
 <br>
 
-![Governance page](./docs/screenshots/governance.png)
+![Governance page](governance-and-liquidity-pool.png)
 
 *Caption: e.g. "Casting a vote weighted by live wallet balance."*
 
@@ -108,7 +109,7 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 <summary><strong>👤 Portfolio</strong> — a user's positions, policies, and pool deposits in one view</summary>
 <br>
 
-![Portfolio page](./docs/screenshots/portfolio.png)
+![Portfolio page](portfolio.png)
 
 *Caption: e.g. "Claimable winnings surfaced after settlement."*
 
@@ -118,14 +119,20 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 <summary><strong>🔍 Proofs</strong> — the audit trail: proof records and their detail view</summary>
 <br>
 
-![Proofs list](./docs/screenshots/proofs-list.png)
-![Proof detail](./docs/screenshots/proof-detail.png)
+![Proofs list](proofs.png)
+![Proof detail](proof-details.png)
 
 *Caption: e.g. "Proof detail view — hash, Merkle root, path, signature, and every market/policy it settled."*
 
 </details>
+<summary><strong>Admin</strong> — full admin dashboard</summary>
+<br>
 
-<sub>Tip: keep each screenshot under ~1–2 MB and roughly 1280–1600px wide so the README stays fast to load. PNG or JPG both work.</sub>
+![Matches page](admin.png)
+
+*Caption: e.g. "full admin dashboard"*
+
+</details>
 
 ---
 
