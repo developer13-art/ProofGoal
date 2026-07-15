@@ -15,7 +15,7 @@
 
 ---
 
-### The 30-second pitch
+### The intoduction
 
 Every other prediction-market demo you'll see today either **hardcodes the outcome** or **never actually moves money**. ProofGoal does neither. Real SOL changes hands, verified against the Solana ledger transaction-by-transaction (§12) — and it is *structurally impossible* for a market, an insurance policy, or a governance vote to settle against a result that hasn't first been written to an immutable, hash-anchored proof record. Freeze the database mid-match and nothing pays out wrong; there's no path from "match ends" to "money moves" that skips the proof.
 
