@@ -36,6 +36,7 @@ export const positionsTable = pgTable("positions", {
     .defaultNow(),
   settledAt: timestamp("settled_at", { withTimezone: true }),
   settlementTxSig: text("settlement_tx_sig"),
+  payoutTxSig: text("payout_tx_sig"),
 });
 
 export const insertPositionSchema = createInsertSchema(positionsTable).omit({

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { count, desc, eq } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { db, marketsTable, matchesTable, matchEventsTable } from "@workspace/db";
 import {
   ListMatchesQueryParams,
@@ -83,7 +83,7 @@ router.get("/matches/:matchId/events", async (req, res): Promise<void> => {
     .select()
     .from(matchEventsTable)
     .where(eq(matchEventsTable.matchId, params.data.matchId))
-    .orderBy(desc(matchEventsTable.minute));
+    .orderBy(asc(matchEventsTable.minute));
 
   res.json(ListMatchEventsResponse.parse(events));
 });

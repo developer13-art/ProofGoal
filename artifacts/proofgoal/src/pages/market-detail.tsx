@@ -5,7 +5,9 @@ import {
   useCreatePosition,
   getGetMarketQueryKey,
 } from "@workspace/api-client-react";
-import { useAppWallet as useWallet } from "@/lib/wallet";
+import { useAppWallet } from "@/lib/wallet";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { Transaction, SystemProgram, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   Card,
   CardContent,
@@ -15,13 +17,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { formatLamports, formatOdds } from "@/lib/format";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+
+interface AppConfig {
+  treasuryWallet: string | null;
+  network: string;
+}
 
 export function MarketDetailPage() {
   const { marketId } = useParams();
-  const { walletAddress } = useWallet();
+  const { walletAddress } = useAppWallet();
+  const { sendTransaction, publicKey: userPublicKey } = useWallet();
+  const { connection } = useConnection();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -29,9 +39,17 @@ export function MarketDetailPage() {
     query: { enabled: !!marketId, queryKey: getGetMarketQueryKey(marketId!) },
   });
 
+  // Fetch treasury config for on-chain transfers
+  const { data: appConfig } = useQuery<AppConfig>({
+    queryKey: ["app-config"],
+    queryFn: () => fetch("/api/config").then((r) => r.json() as Promise<AppConfig>),
+    staleTime: Infinity,
+  });
+
   const placePosition = useCreatePosition();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [stake, setStake] = useState("1");
+  const [isSendingTx, setIsSendingTx] = useState(false);
 
   const handleTrade = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,14 +61,60 @@ export function MarketDetailPage() {
       toast({ title: "Selection required", description: "Choose an outcome.", variant: "destructive" });
       return;
     }
-    const stakeLamports = parseFloat(stake) * 1e9;
-    if (isNaN(stakeLamports) || stakeLamports <= 0) return;
+    const stakeSol = parseFloat(stake);
+    if (isNaN(stakeSol) || stakeSol <= 0) {
+      toast({ title: "Invalid stake", description: "Enter a valid SOL amount greater than 0.", variant: "destructive" });
+      return;
+    }
+    const stakeLamports = Math.round(stakeSol * LAMPORTS_PER_SOL);
+
+    let txSignature: string | undefined;
+
+    // If a treasury wallet is configured and we have a connected wallet, send real SOL
+    if (appConfig?.treasuryWallet && userPublicKey) {
+      try {
+        setIsSendingTx(true);
+        toast({ title: "Sending SOL…", description: "Approve the transaction in your wallet." });
+
+        const tx = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: userPublicKey,
+            toPubkey: new PublicKey(appConfig.treasuryWallet),
+            lamports: stakeLamports,
+          }),
+        );
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+        tx.recentBlockhash = blockhash;
+        tx.feePayer = userPublicKey;
+
+        txSignature = await sendTransaction(tx, connection);
+        await connection.confirmTransaction({ signature: txSignature, blockhash, lastValidBlockHeight }, "confirmed");
+        toast({ title: "Payment confirmed ✓", description: `${stakeSol} SOL transferred on-chain.` });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Transaction rejected";
+        toast({ title: "Transaction failed", description: msg, variant: "destructive" });
+        return;
+      } finally {
+        setIsSendingTx(false);
+      }
+    }
 
     try {
       await placePosition.mutateAsync({
-        data: { walletAddress, marketId: marketId!, selectionId: selectedId, stakeLamports },
+        data: {
+          walletAddress,
+          marketId: marketId!,
+          selectionId: selectedId,
+          stakeLamports,
+          // txSignature is not in the generated CreatePositionBody type, but the server
+          // accepts it via an extended Zod schema and verifies it on-chain.
+          ...(txSignature ? { txSignature } : {}),
+        } as Parameters<typeof placePosition.mutateAsync>[0]["data"],
       });
-      toast({ title: "Trade placed", description: "Position successfully opened." });
+      toast({
+        title: "Trade placed",
+        description: txSignature ? "On-chain position opened." : "Simulated position opened.",
+      });
       queryClient.invalidateQueries({ queryKey: getGetMarketQueryKey(marketId!) });
     } catch {
       toast({ title: "Trade failed", description: "Could not place position.", variant: "destructive" });
@@ -61,6 +125,7 @@ export function MarketDetailPage() {
   if (!market) return <div className="text-center py-10">Market not found.</div>;
 
   const selectedSelection = market.selections.find((s) => s.id === selectedId);
+  const isOnChain = Boolean(appConfig?.treasuryWallet && userPublicKey);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
@@ -71,6 +136,11 @@ export function MarketDetailPage() {
           <span className="uppercase px-2 py-1 rounded bg-secondary">{market.status}</span>
           <span className="uppercase">{market.type.replace(/_/g, " ")}</span>
           <span>Liq: {formatLamports(market.liquidityLamports)} SOL</span>
+          {isOnChain ? (
+            <Badge variant="default" className="text-[10px]">On-chain</Badge>
+          ) : (
+            <Badge variant="secondary" className="text-[10px]">Simulated</Badge>
+          )}
         </div>
       </div>
 
@@ -82,7 +152,8 @@ export function MarketDetailPage() {
           stake={stake}
           setStake={setStake}
           walletAddress={walletAddress}
-          placePosition={placePosition}
+          isOnChain={isOnChain}
+          isPending={placePosition.isPending || isSendingTx}
           handleTrade={handleTrade}
         />
       </div>
@@ -119,7 +190,8 @@ export function MarketDetailPage() {
             stake={stake}
             setStake={setStake}
             walletAddress={walletAddress}
-            placePosition={placePosition}
+            isOnChain={isOnChain}
+            isPending={placePosition.isPending || isSendingTx}
             handleTrade={handleTrade}
           />
         </div>
@@ -134,7 +206,8 @@ function TradePanel({
   stake,
   setStake,
   walletAddress,
-  placePosition,
+  isOnChain,
+  isPending,
   handleTrade,
 }: {
   market: { status: string; selections: { id: string; label: string; odds: number }[] };
@@ -142,13 +215,21 @@ function TradePanel({
   stake: string;
   setStake: (v: string) => void;
   walletAddress: string | null;
-  placePosition: { isPending: boolean };
+  isOnChain: boolean;
+  isPending: boolean;
   handleTrade: (e: React.FormEvent) => Promise<void>;
 }) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Place Trade</CardTitle>
+        <CardTitle className="text-base flex items-center justify-between">
+          Place Trade
+          {isOnChain ? (
+            <Badge variant="default" className="text-[10px]">Real SOL</Badge>
+          ) : (
+            <Badge variant="secondary" className="text-[10px]">Simulated</Badge>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleTrade} className="space-y-4">
@@ -185,13 +266,15 @@ function TradePanel({
           <Button
             type="submit"
             className="w-full"
-            disabled={!selectedSelection || placePosition.isPending || market.status !== "open"}
+            disabled={!selectedSelection || isPending || market.status !== "open"}
           >
-            {placePosition.isPending
-              ? "Placing…"
+            {isPending
+              ? isOnChain ? "Confirming on-chain…" : "Placing…"
               : market.status !== "open"
                 ? "Market Closed"
-                : "Place Trade"}
+                : isOnChain
+                  ? "Place Trade (Real SOL)"
+                  : "Place Trade"}
           </Button>
           {!walletAddress && (
             <p className="text-xs text-center text-muted-foreground">Connect wallet to trade</p>

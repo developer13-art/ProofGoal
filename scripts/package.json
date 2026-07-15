@@ -13,7 +13,7 @@
     "@coral-xyz/anchor": "^0.32.1",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
-    "@workspace/db": "file:../lib/db",
+    "@workspace/db": "workspace:*",
     "tweetnacl": "^1.0.3"
   },
   "devDependencies": {

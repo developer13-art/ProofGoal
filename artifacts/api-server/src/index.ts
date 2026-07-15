@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startTxlinePolling } from "./lib/txline";
+import { startGovernanceResolution } from "./lib/governance";
 
 const rawPort = process.env["PORT"];
 
@@ -25,4 +26,5 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
 
   startTxlinePolling(60_000);
+  startGovernanceResolution(60_000);
 });

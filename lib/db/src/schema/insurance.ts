@@ -54,6 +54,7 @@ export const insurancePoliciesTable = pgTable("insurance_policies", {
   matchId: uuid("match_id").references(() => matchesTable.id, {
     onDelete: "set null",
   }),
+  selectedTeam: text("selected_team"),
   premiumPaidLamports: numeric("premium_paid_lamports", {
     precision: 20,
     scale: 0,
@@ -71,6 +72,7 @@ export const insurancePoliciesTable = pgTable("insurance_policies", {
     .notNull()
     .defaultNow(),
   claimTxSig: text("claim_tx_sig"),
+  premiumTxSig: text("premium_tx_sig"),
 });
 
 export const insertInsurancePolicySchema = createInsertSchema(

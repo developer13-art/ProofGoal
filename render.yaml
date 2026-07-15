@@ -1,0 +1,81 @@
+### Render Blueprint for ProofGoal
+### Deploy this whole repo in one shot: on Render, go to
+### New → Blueprint, point it at this repo, and Render will read this file.
+###
+### IMPORTANT: rootDir is "." (the monorepo root) for BOTH services — never
+### point Render's "Root Directory" at a subfolder like artifacts/api-server,
+### it will break pnpm workspace resolution (workspace:* deps won't resolve).
+###
+### After the API service's first deploy, note its onrender.com URL and make
+### sure it matches the `destination` in the frontend's rewrite rule below —
+### edit and redeploy (or set it via the Dashboard's Redirects/Rewrites tab)
+### if Render assigned a different name/URL than expected.
+
+services:
+  # ── Backend API (Express + Postgres) ──────────────────────────────────────
+  - type: web
+    name: proofgoal-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: >-
+      corepack enable &&
+      corepack prepare pnpm@10.26.1 --activate &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @workspace/api-server run build
+    startCommand: node artifacts/api-server/dist/index.mjs
+    healthCheckPath: /api/analytics/summary
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20.20.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: proofgoal-db
+          property: connectionString
+      - key: TXLINE_NETWORK
+        value: devnet
+      # Set these manually in the Render dashboard after first deploy —
+      # they're left blank here on purpose so they never end up in git.
+      - key: ADMIN_SECRET
+        sync: false
+      - key: TREASURY_WALLET_PUBKEY
+        sync: false
+      - key: TREASURY_WALLET_PRIVATE_KEY
+        sync: false
+      - key: TXLINE_API_KEY
+        sync: false
+
+  # ── Frontend (static Vite build) ───────────────────────────────────────────
+  - type: web
+    name: proofgoal-frontend
+    runtime: static
+    rootDir: .
+    buildCommand: >-
+      corepack enable &&
+      corepack prepare pnpm@10.26.1 --activate &&
+      pnpm install --frozen-lockfile &&
+      PORT=5000 BASE_PATH=/ pnpm --filter @workspace/proofgoal run build
+    staticPublishPath: artifacts/proofgoal/dist/public
+    envVars:
+      - key: NODE_VERSION
+        value: 20.20.0
+    routes:
+      # Forward API calls to the backend service so the frontend's relative
+      # fetch("/api/...") calls keep working even though they're two separate
+      # Render services on two different onrender.com subdomains.
+      - type: rewrite
+        source: /api/*
+        destination: https://proofgoal-api.onrender.com/api/*
+      # SPA fallback so client-side routes (e.g. /portfolio, /admin) don't 404
+      # on a hard refresh.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: proofgoal-db
+    plan: free
+    region: oregon

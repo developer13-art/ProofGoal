@@ -1,5 +1,5 @@
 import type { QueryKey, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { AnalyticsSummary, GovernanceProposal, GovernanceProposalInput, HealthStatus, InsurancePolicy, InsurancePolicyInput, InsuranceProduct, InsuranceProductInput, LiquidityPool, ListGovernanceProposalsParams, ListInsurancePoliciesParams, ListInsuranceProductsParams, ListMarketsParams, ListMatchesParams, ListPositionsParams, ListProofRecordsParams, Market, MarketInput, Match, MatchDetail, MatchEvent, PortfolioSummary, Position, PositionInput, ProofRecord, TxlineStatus, User, VolumePoint, Vote, VoteInput, WalletConnectInput } from './api.schemas';
+import type { AnalyticsSummary, GovernanceProposal, GovernanceProposalInput, HealthStatus, InsurancePolicy, InsurancePolicyInput, InsuranceProduct, InsuranceProductInput, LiquidityPool, ListGovernanceProposalsParams, ListInsurancePoliciesParams, ListInsuranceProductsParams, ListMarketsParams, ListMatchesParams, ListPositionsParams, ListProofRecordsParams, Market, MarketInput, Match, MatchDetail, MatchEvent, PortfolioSummary, Position, PositionInput, ProofRecord, ProofRecordDetail, TxlineStatus, User, VolumePoint, Vote, VoteInput, WalletConnectInput } from './api.schemas';
 import { customFetch } from '../custom-fetch';
 import type { ErrorType, BodyType } from '../custom-fetch';
 type AwaitedInput<T> = PromiseLike<T> | T;
@@ -528,6 +528,31 @@ export type GetProofRecordQueryError = ErrorType<void>;
  */
 export declare function useGetProofRecord<TData = Awaited<ReturnType<typeof getProofRecord>>, TError = ErrorType<void>>(proofId: string, options?: {
     query?: UseQueryOptions<Awaited<ReturnType<typeof getProofRecord>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+};
+export declare const getGetProofRecordDetailsUrl: (proofId: string) => string;
+/**
+ * @summary Get a proof record with its full settlement context — the match it proves, every market settled off it (with the winning selection and position outcome counts), and every insurance policy resolved off it.
+
+ */
+export declare const getProofRecordDetails: (proofId: string, options?: RequestInit) => Promise<ProofRecordDetail>;
+export declare const getGetProofRecordDetailsQueryKey: (proofId: string) => readonly [`/api/proofs/${string}/details`];
+export declare const getGetProofRecordDetailsQueryOptions: <TData = Awaited<ReturnType<typeof getProofRecordDetails>>, TError = ErrorType<void>>(proofId: string, options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getProofRecordDetails>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof getProofRecordDetails>>, TError, TData> & {
+    queryKey: QueryKey;
+};
+export type GetProofRecordDetailsQueryResult = NonNullable<Awaited<ReturnType<typeof getProofRecordDetails>>>;
+export type GetProofRecordDetailsQueryError = ErrorType<void>;
+/**
+ * @summary Get a proof record with its full settlement context — the match it proves, every market settled off it (with the winning selection and position outcome counts), and every insurance policy resolved off it.
+
+ */
+export declare function useGetProofRecordDetails<TData = Awaited<ReturnType<typeof getProofRecordDetails>>, TError = ErrorType<void>>(proofId: string, options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getProofRecordDetails>>, TError, TData>;
     request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

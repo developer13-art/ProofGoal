@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { useAppWallet } from "@/lib/wallet";
+import { useAppWallet, useSolBalance } from "@/lib/wallet";
 import { shortenAddress } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,6 +29,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { walletAddress, disconnect, connecting, isRegistering } = useAppWallet();
   const { setVisible } = useWalletModal();
   const [location] = useLocation();
+  const solBalance = useSolBalance();
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
@@ -69,13 +70,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             {walletAddress ? (
               <>
-                {/* Compact badge: show green dot + address */}
+                {/* Badge: green dot + address + SOL balance */}
                 <div className="flex items-center gap-1.5 bg-secondary px-2 py-1 rounded-lg border">
                   <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                  <span className="text-xs font-mono hidden sm:inline">{shortenAddress(walletAddress)}</span>
+                  <span className="text-xs font-mono hidden sm:inline">
+                    {shortenAddress(walletAddress)}
+                  </span>
                   <span className="text-xs font-mono sm:hidden">
                     {walletAddress.slice(0, 4)}…
                   </span>
+                  {solBalance !== null && (
+                    <span className="text-xs font-mono text-muted-foreground hidden sm:inline border-l pl-1.5 ml-0.5">
+                      {solBalance.toFixed(3)} SOL
+                    </span>
+                  )}
                 </div>
                 <Button variant="ghost" size="sm" onClick={disconnect} className="text-xs px-2 h-7">
                   Disconnect

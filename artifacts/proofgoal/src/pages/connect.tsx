@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
@@ -29,10 +29,25 @@ function SolflareIcon() {
 }
 
 export function ConnectWalletPage() {
-  const { select, wallets } = useWallet();
+  const { select, wallets, wallet, connect, connecting, connected } = useWallet();
   const { setVisible } = useWalletModal();
   const { walletAddress, isRegistering, registrationError } = useAppWallet();
   const [, setLocation] = useLocation();
+
+  // After a wallet is selected, automatically trigger the connection popup.
+  // This fires only when the selected wallet adapter changes (not on every render).
+  const prevWalletNameRef = useRef<string | null>(null);
+  const connectRef = useRef(connect);
+  useEffect(() => { connectRef.current = connect; }, [connect]);
+
+  useEffect(() => {
+    const name = wallet?.adapter.name ?? null;
+    if (name && name !== prevWalletNameRef.current && !connected && !connecting) {
+      prevWalletNameRef.current = name;
+      connectRef.current().catch(() => {});
+    }
+    if (!name) prevWalletNameRef.current = null;
+  }, [wallet?.adapter.name, connected, connecting]);
 
   useEffect(() => {
     if (walletAddress) {
@@ -69,7 +84,7 @@ export function ConnectWalletPage() {
               className="w-full h-14 text-base justify-start gap-4"
               variant={phantom.readyState === "Installed" ? "default" : "outline"}
               onClick={() => handleSelectWallet("Phantom")}
-              disabled={isRegistering}
+              disabled={isRegistering || connecting}
             >
               <PhantomIcon />
               <div className="flex flex-col items-start">
@@ -96,7 +111,7 @@ export function ConnectWalletPage() {
               className="w-full h-14 text-base justify-start gap-4"
               variant={solflare.readyState === "Installed" ? "default" : "outline"}
               onClick={() => handleSelectWallet("Solflare")}
-              disabled={isRegistering}
+              disabled={isRegistering || connecting}
             >
               <SolflareIcon />
               <div className="flex flex-col items-start">
@@ -122,7 +137,7 @@ export function ConnectWalletPage() {
             className="w-full"
             variant="ghost"
             onClick={() => setVisible(true)}
-            disabled={isRegistering}
+            disabled={isRegistering || connecting}
           >
             More wallets...
           </Button>
@@ -147,10 +162,10 @@ export function ConnectWalletPage() {
         </CardContent>
       </Card>
 
-      {isRegistering && (
+      {(isRegistering || connecting) && (
         <Alert>
           <AlertDescription className="text-center">
-            Registering wallet with ProofGoal...
+            {connecting ? "Opening wallet…" : "Registering wallet with ProofGoal…"}
           </AlertDescription>
         </Alert>
       )}

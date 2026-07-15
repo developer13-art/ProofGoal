@@ -431,6 +431,26 @@ paths:
         "404":
           description: Not found
 
+  /proofs/{proofId}/details:
+    get:
+      operationId: getProofRecordDetails
+      tags: [proofs]
+      summary: >
+        Get a proof record with its full settlement context — the match it
+        proves, every market settled off it (with the winning selection and
+        position outcome counts), and every insurance policy resolved off it.
+      parameters:
+        - $ref: "#/components/parameters/ProofIdParam"
+      responses:
+        "200":
+          description: Proof record with full settlement detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofRecordDetail"
+        "404":
+          description: Not found
+
   /portfolio/{walletAddress}:
     get:
       operationId: getPortfolioSummary
@@ -1046,6 +1066,89 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    SettledMarketSummary:
+      type: object
+      required:
+        [
+          id,
+          type,
+          title,
+          status,
+          selections,
+          winningSelectionId,
+          winningSelectionLabel,
+          totalPositions,
+          wonPositions,
+          lostPositions,
+          claimedPositions,
+        ]
+      properties:
+        id:
+          type: string
+        type:
+          $ref: "#/components/schemas/MarketType"
+        title:
+          type: string
+        status:
+          $ref: "#/components/schemas/MarketStatus"
+        selections:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketSelection"
+        winningSelectionId:
+          type: ["string", "null"]
+        winningSelectionLabel:
+          type: ["string", "null"]
+        totalPositions:
+          type: integer
+        wonPositions:
+          type: integer
+        lostPositions:
+          type: integer
+        claimedPositions:
+          type: integer
+
+    SettledInsurancePolicySummary:
+      type: object
+      required:
+        [id, walletAddress, productName, productType, status, coverageLamports, selectedTeam]
+      properties:
+        id:
+          type: string
+        walletAddress:
+          type: string
+        productName:
+          type: string
+        productType:
+          $ref: "#/components/schemas/InsuranceType"
+        status:
+          $ref: "#/components/schemas/PolicyStatus"
+        coverageLamports:
+          type: number
+        selectedTeam:
+          type: ["string", "null"]
+        claimTxSig:
+          type: ["string", "null"]
+
+    ProofRecordDetail:
+      allOf:
+        - $ref: "#/components/schemas/ProofRecord"
+        - type: object
+          required: [match, markets, insurancePolicies]
+          properties:
+            match:
+              anyOf:
+                - $ref: "#/components/schemas/MatchDetail"
+                - type: "null"
+            markets:
+              type: array
+              items:
+                $ref: "#/components/schemas/SettledMarketSummary"
+            insurancePolicies:
+              type: array
+              items:
+                $ref: "#/components/schemas/SettledInsurancePolicySummary"
 
     PortfolioSummary:
       type: object

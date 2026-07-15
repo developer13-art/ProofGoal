@@ -2,18 +2,18 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
-  "private": true,
-  "packageManager": "npm@10.9.2",
   "workspaces": [
     "artifacts/*",
     "lib/*",
+    "lib/integrations/*",
     "scripts"
   ],
   "scripts": {
-    "build": "npm run typecheck && npm run build --workspaces --if-present",
+    "build": "npm run typecheck && npm --workspaces --if-present run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "npm run typecheck:libs && npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck:libs && npm --workspaces --if-present run typecheck"
   },
+  "private": true,
   "devDependencies": {
     "prettier": "^3.8.4",
     "typescript": "~5.9.3"

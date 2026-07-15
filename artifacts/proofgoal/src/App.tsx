@@ -14,6 +14,7 @@ import { MatchesPage } from "@/pages/matches";
 import { MatchDetailPage } from "@/pages/match-detail";
 import { InsurancePage } from "@/pages/insurance";
 import { ProofsPage } from "@/pages/proofs";
+import { ProofDetailPage } from "@/pages/proof-detail";
 import { PortfolioPage } from "@/pages/portfolio";
 import { GovernancePage } from "@/pages/governance";
 import { AdminPage } from "@/pages/admin";
@@ -43,6 +44,7 @@ export default function App() {
                 <Route path="/matches/:matchId" component={MatchDetailPage} />
                 <Route path="/insurance" component={InsurancePage} />
                 <Route path="/proofs" component={ProofsPage} />
+                <Route path="/proofs/:proofId" component={ProofDetailPage} />
                 <Route path="/portfolio" component={PortfolioPage} />
                 <Route path="/governance" component={GovernancePage} />
                 <Route path="/admin" component={AdminPage} />

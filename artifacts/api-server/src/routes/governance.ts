@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, count, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db, governanceProposalsTable, votesTable } from "@workspace/db";
 import {
   ListGovernanceProposalsQueryParams,
@@ -12,8 +12,13 @@ import {
   CastVoteBody,
   CastVoteResponse,
 } from "@workspace/api-zod";
+import { logger } from "../lib/logger";
+import { sendPayout, isTreasuryConfigured } from "../lib/payout";
+import { getWalletBalanceSol } from "../lib/solana";
 
 const router: IRouter = Router();
+
+const PARTICIPATION_REWARD_LAMPORTS = 1_000_000; // 0.001 SOL
 
 router.get("/governance/proposals", async (req, res): Promise<void> => {
   const parsed = ListGovernanceProposalsQueryParams.safeParse(req.query);
@@ -97,6 +102,11 @@ router.post(
       return;
     }
 
+    if (proposal.status !== "active") {
+      res.status(400).json({ error: "Proposal is not active" });
+      return;
+    }
+
     const [existingVote] = await db
       .select()
       .from(votesTable)
@@ -112,18 +122,27 @@ router.post(
       return;
     }
 
+    // Fetch stake weight from Solana RPC; floor at MIN_WEIGHT_SOL on failure
+    let weight = 0.01;
+    try {
+      weight = await getWalletBalanceSol(body.data.walletAddress);
+    } catch (err) {
+      logger.warn({ err, walletAddress: body.data.walletAddress }, "Failed to fetch SOL balance for vote weight; using floor");
+    }
+
     const [created] = await db
       .insert(votesTable)
       .values({
         proposalId: params.data.proposalId,
         walletAddress: body.data.walletAddress,
         choice: body.data.choice,
-        weight: 1,
+        weight,
       })
       .returning();
 
-    const [forVotesRow] = await db
-      .select({ value: count() })
+    // Recalculate weighted totals via SQL SUM
+    const [forRow] = await db
+      .select({ total: sql<number>`coalesce(sum(${votesTable.weight}), 0)` })
       .from(votesTable)
       .where(
         and(
@@ -131,8 +150,8 @@ router.post(
           eq(votesTable.choice, "for"),
         ),
       );
-    const [againstVotesRow] = await db
-      .select({ value: count() })
+    const [againstRow] = await db
+      .select({ total: sql<number>`coalesce(sum(${votesTable.weight}), 0)` })
       .from(votesTable)
       .where(
         and(
@@ -144,12 +163,30 @@ router.post(
     await db
       .update(governanceProposalsTable)
       .set({
-        votesFor: forVotesRow?.value ?? 0,
-        votesAgainst: againstVotesRow?.value ?? 0,
+        votesFor: forRow?.total ?? 0,
+        votesAgainst: againstRow?.total ?? 0,
       })
       .where(eq(governanceProposalsTable.id, params.data.proposalId));
 
-    res.status(201).json(CastVoteResponse.parse(created));
+    // Best-effort participation reward — never blocks the vote response
+    let rewardSent = false;
+    if (isTreasuryConfigured()) {
+      try {
+        await sendPayout(body.data.walletAddress, PARTICIPATION_REWARD_LAMPORTS);
+        rewardSent = true;
+        logger.info(
+          { walletAddress: body.data.walletAddress, proposalId: params.data.proposalId, lamports: PARTICIPATION_REWARD_LAMPORTS },
+          "Participation reward sent for vote",
+        );
+      } catch (err) {
+        logger.warn(
+          { err, walletAddress: body.data.walletAddress, proposalId: params.data.proposalId },
+          "Participation reward failed; vote still recorded",
+        );
+      }
+    }
+
+    res.status(201).json({ ...CastVoteResponse.parse(created), rewardSent });
   },
 );
 

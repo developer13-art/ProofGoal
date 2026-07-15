@@ -44,7 +44,7 @@ export declare const insuranceProductsTable: import("drizzle-orm/pg-core").PgTab
             tableName: "insurance_products";
             dataType: "string";
             columnType: "PgText";
-            data: "custom" | "favorite_team_loss" | "tournament_exit" | "qualification" | "goal_insurance" | "event_triggered";
+            data: "favorite_team_loss" | "tournament_exit" | "qualification" | "goal_insurance" | "event_triggered" | "custom";
             driverParam: string;
             notNull: true;
             hasDefault: false;
@@ -147,12 +147,12 @@ export declare const insuranceProductsTable: import("drizzle-orm/pg-core").PgTab
 export declare const insertInsuranceProductSchema: z.ZodObject<{
     name: z.ZodString;
     type: z.ZodEnum<{
-        custom: "custom";
         favorite_team_loss: "favorite_team_loss";
         tournament_exit: "tournament_exit";
         qualification: "qualification";
         goal_insurance: "goal_insurance";
         event_triggered: "event_triggered";
+        custom: "custom";
     }>;
     description: z.ZodString;
     premiumRateBps: z.ZodInt;
@@ -236,6 +236,23 @@ export declare const insurancePoliciesTable: import("drizzle-orm/pg-core").PgTab
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        selectedTeam: import("drizzle-orm/pg-core").PgColumn<{
+            name: "selected_team";
+            tableName: "insurance_policies";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         premiumPaidLamports: import("drizzle-orm/pg-core").PgColumn<{
             name: "premium_paid_lamports";
             tableName: "insurance_policies";
@@ -275,7 +292,7 @@ export declare const insurancePoliciesTable: import("drizzle-orm/pg-core").PgTab
             tableName: "insurance_policies";
             dataType: "string";
             columnType: "PgText";
-            data: "void" | "claimed" | "active" | "triggered" | "expired";
+            data: "active" | "triggered" | "expired" | "claimed" | "void";
             driverParam: string;
             notNull: true;
             hasDefault: true;
@@ -321,23 +338,42 @@ export declare const insurancePoliciesTable: import("drizzle-orm/pg-core").PgTab
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        premiumTxSig: import("drizzle-orm/pg-core").PgColumn<{
+            name: "premium_tx_sig";
+            tableName: "insurance_policies";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
     };
     dialect: "pg";
 }>;
 export declare const insertInsurancePolicySchema: z.ZodObject<{
     walletAddress: z.ZodString;
+    productId: z.ZodUUID;
     status: z.ZodOptional<z.ZodEnum<{
-        void: "void";
-        claimed: "claimed";
         active: "active";
         triggered: "triggered";
         expired: "expired";
+        claimed: "claimed";
+        void: "void";
     }>>;
     matchId: z.ZodOptional<z.ZodNullable<z.ZodUUID>>;
-    productId: z.ZodUUID;
+    selectedTeam: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     premiumPaidLamports: z.ZodNumber;
     coverageLamports: z.ZodNumber;
     claimTxSig: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    premiumTxSig: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};

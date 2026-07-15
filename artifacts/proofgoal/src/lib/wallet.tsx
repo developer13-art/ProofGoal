@@ -6,7 +6,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useConnectWallet } from "@workspace/api-client-react";
 
 interface WalletRegistrationContextState {
@@ -96,4 +97,41 @@ export function useAppWallet() {
     select: solana.select,
     connect: solana.connect,
   };
+}
+
+/** Returns the connected wallet's SOL balance (in SOL, not lamports), polling every 30s. */
+export function useSolBalance(): number | null {
+  const { connection } = useConnection();
+  const { publicKey } = useWallet();
+  const [balance, setBalance] = useState<number | null>(null);
+
+  // Use a stable key so the effect only re-runs when the key actually changes
+  const pubkeyStr = publicKey?.toBase58() ?? null;
+
+  useEffect(() => {
+    if (!publicKey || !pubkeyStr) {
+      setBalance(null);
+      return;
+    }
+    let cancelled = false;
+
+    const fetchBalance = async () => {
+      try {
+        const lamports = await connection.getBalance(publicKey);
+        if (!cancelled) setBalance(lamports / LAMPORTS_PER_SOL);
+      } catch {
+        // Network hiccups are common on devnet — silently retry next interval
+      }
+    };
+
+    void fetchBalance();
+    const interval = setInterval(fetchBalance, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pubkeyStr]);
+
+  return balance;
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useListProofRecords } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ValidationStatus } from "@workspace/api-zod";
@@ -56,50 +57,55 @@ export function ProofsPage() {
       ) : (
         <div className="space-y-2">
           {proofs.map((proof) => (
-            <Card key={proof.id}>
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex flex-col gap-1.5 min-w-0">
-                    <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
-                      Match ID
-                    </span>
-                    <span className="text-xs font-mono truncate">{proof.matchId}</span>
+            <Link key={proof.id} href={`/proofs/${proof.id}`}>
+              <Card className="cursor-pointer transition-colors hover:border-primary/50">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex flex-col gap-1.5 min-w-0">
+                      <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+                        Match ID
+                      </span>
+                      <span className="text-xs font-mono truncate">{proof.matchId}</span>
 
-                    <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mt-1">
-                      Proof Hash
-                    </span>
-                    <span
-                      className="text-xs font-mono truncate max-w-full"
-                      title={proof.proofHash}
-                    >
-                      {proof.proofHash}
-                    </span>
+                      <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mt-1">
+                        Proof Hash
+                      </span>
+                      <span
+                        className="text-xs font-mono truncate max-w-full"
+                        title={proof.proofHash}
+                      >
+                        {proof.proofHash}
+                      </span>
 
-                    <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mt-1">
-                      Merkle Root
-                    </span>
-                    <span
-                      className="text-xs font-mono truncate max-w-full"
-                      title={proof.merkleRoot}
-                    >
-                      {proof.merkleRoot}
-                    </span>
+                      <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mt-1">
+                        Merkle Root
+                      </span>
+                      <span
+                        className="text-xs font-mono truncate max-w-full"
+                        title={proof.merkleRoot}
+                      >
+                        {proof.merkleRoot}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                      <span
+                        className={`text-[10px] px-2 py-1 rounded-full uppercase tracking-wider font-bold ${
+                          proof.validationStatus === "verified"
+                            ? "bg-primary/10 text-primary"
+                            : proof.validationStatus === "failed"
+                              ? "bg-destructive/10 text-destructive"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {proof.validationStatus}
+                      </span>
+                      <span className="text-primary text-xs font-medium hidden sm:inline">View →</span>
+                    </div>
                   </div>
-
-                  <span
-                    className={`text-[10px] px-2 py-1 rounded-full uppercase tracking-wider font-bold shrink-0 self-start sm:self-center ${
-                      proof.validationStatus === "verified"
-                        ? "bg-primary/10 text-primary"
-                        : proof.validationStatus === "failed"
-                          ? "bg-destructive/10 text-destructive"
-                          : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {proof.validationStatus}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

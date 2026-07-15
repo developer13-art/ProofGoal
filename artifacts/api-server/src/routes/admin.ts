@@ -14,9 +14,15 @@ import {
   insurancePoliciesTable,
   governanceProposalsTable,
   liquidityPoolsTable,
+  liquidityPositionsTable,
   proofRecordsTable,
+  usersTable,
 } from "@workspace/db";
 import { syncMatchesFromTxline, createDefaultMarketsForMatch, settleMarket, generateProofAndSettle } from "../lib/txline";
+import { getTreasuryInfo, isTreasuryConfigured } from "../lib/payout";
+import { forceResolveProposal } from "../lib/governance";
+import { logger } from "../lib/logger";
+import { sql, desc } from "drizzle-orm";
 import crypto from "crypto";
 
 const router: IRouter = Router();
@@ -37,7 +43,7 @@ router.use("/admin", adminAuth);
 
 // ── Stats overview ─────────────────────────────────────────────────────────────
 router.get("/admin/stats", async (_req, res): Promise<void> => {
-  const [[matches], [markets], [positions], [products], [policies], [proposals], [proofs]] =
+  const [[matches], [markets], [positions], [products], [policies], [proposals], [proofs], [users], [pools]] =
     await Promise.all([
       db.select({ value: count() }).from(matchesTable),
       db.select({ value: count() }).from(marketsTable),
@@ -46,6 +52,8 @@ router.get("/admin/stats", async (_req, res): Promise<void> => {
       db.select({ value: count() }).from(insurancePoliciesTable),
       db.select({ value: count() }).from(governanceProposalsTable),
       db.select({ value: count() }).from(proofRecordsTable),
+      db.select({ value: count() }).from(usersTable),
+      db.select({ value: count() }).from(liquidityPoolsTable),
     ]);
 
   const [openMarkets] = await db
@@ -58,6 +66,14 @@ router.get("/admin/stats", async (_req, res): Promise<void> => {
     .from(marketsTable)
     .where(eq(marketsTable.status, "settled"));
 
+  const [volumeRow] = await db
+    .select({ total: sql<number>`coalesce(sum(${positionsTable.stakeLamports}), 0)` })
+    .from(positionsTable);
+
+  const [liquidityRow] = await db
+    .select({ total: sql<number>`coalesce(sum(${liquidityPoolsTable.totalLiquidityLamports}), 0)` })
+    .from(liquidityPoolsTable);
+
   res.json({
     matches: matches?.value ?? 0,
     markets: markets?.value ?? 0,
@@ -68,7 +84,105 @@ router.get("/admin/stats", async (_req, res): Promise<void> => {
     insurancePolicies: policies?.value ?? 0,
     governanceProposals: proposals?.value ?? 0,
     proofs: proofs?.value ?? 0,
+    users: users?.value ?? 0,
+    liquidityPools: pools?.value ?? 0,
+    totalVolumeLamports: volumeRow?.total ?? 0,
+    totalLiquidityLamports: liquidityRow?.total ?? 0,
   });
+});
+
+// ── Treasury wallet ────────────────────────────────────────────────────────────
+router.get("/admin/treasury", async (_req, res): Promise<void> => {
+  if (!isTreasuryConfigured()) {
+    res.json({ configured: false, address: null, balanceLamports: 0, balanceSol: 0, network: null });
+    return;
+  }
+  try {
+    const info = await getTreasuryInfo();
+    res.json({ configured: true, ...info });
+  } catch (err) {
+    logger.warn({ err }, "Failed to fetch treasury info for admin dashboard");
+    res.status(502).json({ error: `Failed to fetch treasury balance: ${(err as Error).message}` });
+  }
+});
+
+// ── Users ──────────────────────────────────────────────────────────────────────
+router.get("/admin/users", async (_req, res): Promise<void> => {
+  const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt)).limit(200);
+  res.json(users);
+});
+
+// ── Platform-wide positions (all wallets) ──────────────────────────────────────
+router.get("/admin/positions", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: positionsTable.id,
+      walletAddress: positionsTable.walletAddress,
+      marketId: positionsTable.marketId,
+      marketTitle: marketsTable.title,
+      selectionId: positionsTable.selectionId,
+      stakeLamports: positionsTable.stakeLamports,
+      potentialPayoutLamports: positionsTable.potentialPayoutLamports,
+      status: positionsTable.status,
+      placedAt: positionsTable.placedAt,
+    })
+    .from(positionsTable)
+    .leftJoin(marketsTable, eq(positionsTable.marketId, marketsTable.id))
+    .orderBy(desc(positionsTable.placedAt))
+    .limit(200);
+  res.json(rows);
+});
+
+// ── Platform-wide insurance policies (all wallets) ─────────────────────────────
+router.get("/admin/insurance/policies", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: insurancePoliciesTable.id,
+      walletAddress: insurancePoliciesTable.walletAddress,
+      productId: insurancePoliciesTable.productId,
+      productName: insuranceProductsTable.name,
+      matchId: insurancePoliciesTable.matchId,
+      selectedTeam: insurancePoliciesTable.selectedTeam,
+      premiumPaidLamports: insurancePoliciesTable.premiumPaidLamports,
+      coverageLamports: insurancePoliciesTable.coverageLamports,
+      status: insurancePoliciesTable.status,
+      purchasedAt: insurancePoliciesTable.purchasedAt,
+    })
+    .from(insurancePoliciesTable)
+    .leftJoin(insuranceProductsTable, eq(insurancePoliciesTable.productId, insuranceProductsTable.id))
+    .orderBy(desc(insurancePoliciesTable.purchasedAt))
+    .limit(200);
+  res.json(rows);
+});
+
+// ── Platform-wide liquidity positions (all wallets) ────────────────────────────
+router.get("/admin/liquidity/positions", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: liquidityPositionsTable.id,
+      walletAddress: liquidityPositionsTable.walletAddress,
+      poolId: liquidityPositionsTable.poolId,
+      marketType: liquidityPoolsTable.marketType,
+      depositedLamports: liquidityPositionsTable.depositedLamports,
+      accruedYieldLamports: liquidityPositionsTable.accruedYieldLamports,
+      depositedAt: liquidityPositionsTable.depositedAt,
+    })
+    .from(liquidityPositionsTable)
+    .leftJoin(liquidityPoolsTable, eq(liquidityPositionsTable.poolId, liquidityPoolsTable.id))
+    .orderBy(desc(liquidityPositionsTable.depositedAt))
+    .limit(200);
+  res.json(rows);
+});
+
+// ── Force-resolve a governance proposal early ──────────────────────────────────
+router.post("/admin/governance/proposals/:proposalId/resolve", async (req, res): Promise<void> => {
+  const { proposalId } = req.params;
+  try {
+    const result = await forceResolveProposal(proposalId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: (err as Error).message });
+  }
 });
 
 // ── TxLINE sync ────────────────────────────────────────────────────────────────

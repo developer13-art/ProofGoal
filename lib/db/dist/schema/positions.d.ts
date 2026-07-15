@@ -174,6 +174,23 @@ export declare const positionsTable: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        payoutTxSig: import("drizzle-orm/pg-core").PgColumn<{
+            name: "payout_tx_sig";
+            tableName: "positions";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
     };
     dialect: "pg";
 }>;
@@ -192,6 +209,7 @@ export declare const insertPositionSchema: z.ZodObject<{
     potentialPayoutLamports: z.ZodNumber;
     settledAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
     settlementTxSig: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    payoutTxSig: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};
