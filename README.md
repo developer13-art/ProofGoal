@@ -50,7 +50,7 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 <summary><strong>Home</strong> — live fixtures, scores, and match-time progression</summary>
 <br>
 
-![Matches page](matches.png)
+![Matches page](home.png)
 
 *Caption: e.g. "Live match view showing progressive event reveal."*
 
@@ -109,7 +109,7 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 <summary><strong>👤 Portfolio</strong> — a user's positions, policies, and pool deposits in one view</summary>
 <br>
 
-![Portfolio page](portfolio.png)
+![Portfolio page](portforlio.png)
 
 *Caption: e.g. "Claimable winnings surfaced after settlement."*
 
