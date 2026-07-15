@@ -9,6 +9,7 @@
 [![Chain](https://img.shields.io/badge/chain-Solana%20devnet-9945FF?logo=solana&logoColor=white)](#3-system-architecture)
 [![Stack](https://img.shields.io/badge/stack-TypeScript%20%2B%20React%20%2B%20Express-3178C6?logo=typescript&logoColor=white)](#13-stack--repository-layout)
 [![Oracle](https://img.shields.io/badge/oracle-TxLINE-00C2A8)](#6-the-txline-oracle-integration)
+[![Screenshots](https://img.shields.io/badge/product%20tour-screenshots-8A2BE2)](#-product-tour--screenshots)
 [![Honesty](https://img.shields.io/badge/limitations-disclosed%2C%20not%20hidden-orange)](#14-known-limitations--honest-roadmap)
 
 </div>
@@ -21,10 +22,17 @@ Every other prediction-market demo you'll see today either **hardcodes the outco
 
 That's not a feature bullet point. It's the one invariant the entire codebase is built to protect — see §2.
 
+<div align="center">
+
+**[📸 Jump to Screenshots](#-product-tour--screenshots)** · **[🧠 Read the Core Invariant](#2-the-solution--how-proofgoal-is-different)** · **[🏗️ See the Architecture](#3-system-architecture)** · **[🔐 On-Chain Verification](#12-on-chain-payment-verification--replay-protection)**
+
+</div>
+
 ---
 
 ## Table of Contents
 
+- [📸 Product Tour / Screenshots](#-product-tour--screenshots)
 1. [The Problem](#1-the-problem)
 2. [The Solution — How ProofGoal Is Different](#2-the-solution--how-proofgoal-is-different)
 3. [System Architecture](#3-system-architecture)
@@ -39,6 +47,85 @@ That's not a feature bullet point. It's the one invariant the entire codebase is
 12. [On-Chain Payment Verification & Replay Protection](#12-on-chain-payment-verification--replay-protection)
 13. [Stack & Repository Layout](#13-stack--repository-layout)
 14. [Known Limitations & Honest Roadmap](#14-known-limitations--honest-roadmap)
+
+---
+
+## 📸 Product Tour / Screenshots
+
+> Drop your screenshots into `docs/screenshots/` using the file names below — each placeholder will render automatically once the image exists at that path. No other edits needed.
+
+<details open>
+<summary><strong>🏟️ Matches</strong> — live fixtures, scores, and match-time progression</summary>
+<br>
+
+![Matches page](./docs/screenshots/matches.png)
+
+*Caption: e.g. "Live match view showing progressive event reveal."*
+
+</details>
+
+<details>
+<summary><strong>📈 Markets</strong> — winner / over-under / both-teams-to-score, position lifecycle</summary>
+<br>
+
+![Markets page](./docs/screenshots/markets.png)
+
+*Caption: e.g. "Placing a position against a market selection."*
+
+</details>
+
+<details>
+<summary><strong>🛡️ Insurance</strong> — parametric policies and trigger conditions</summary>
+<br>
+
+![Insurance page](./docs/screenshots/insurance.png)
+
+*Caption: e.g. "Buying a favorite_team_loss policy ahead of kickoff."*
+
+</details>
+
+<details>
+<summary><strong>💧 Liquidity Pools</strong> — deposits, continuous yield accrual, withdrawals</summary>
+<br>
+
+![Liquidity page](./docs/screenshots/liquidity.png)
+
+*Caption: e.g. "Pool APR and accrued yield updating in real time."*
+
+</details>
+
+<details>
+<summary><strong>🗳️ Governance</strong> — balance-weighted voting and proposal resolution</summary>
+<br>
+
+![Governance page](./docs/screenshots/governance.png)
+
+*Caption: e.g. "Casting a vote weighted by live wallet balance."*
+
+</details>
+
+<details>
+<summary><strong>👤 Portfolio</strong> — a user's positions, policies, and pool deposits in one view</summary>
+<br>
+
+![Portfolio page](./docs/screenshots/portfolio.png)
+
+*Caption: e.g. "Claimable winnings surfaced after settlement."*
+
+</details>
+
+<details>
+<summary><strong>🔍 Proofs</strong> — the audit trail: proof records and their detail view</summary>
+<br>
+
+![Proofs list](./docs/screenshots/proofs-list.png)
+![Proof detail](./docs/screenshots/proof-detail.png)
+
+*Caption: e.g. "Proof detail view — hash, Merkle root, path, signature, and every market/policy it settled."*
+
+</details>
+
+<sub>Tip: keep each screenshot under ~1–2 MB and roughly 1280–1600px wide so the README stays fast to load. PNG or JPG both work.</sub>
 
 ---
 
@@ -67,7 +154,7 @@ Concretely: `generateProofAndSettle()` is the *only* entry point allowed to call
 
 That table is the whole pitch. Three properties fall out of it:
 
-- **Auditability** — anyone can open the Proofs explorer and see exactly which match a payout came from, when the proof was created, and every market/policy it drove (see the new [Proof detail view](#5-the-proof-record--what-it-actually-is)).
+- **Auditability** — anyone can open the Proofs explorer and see exactly which match a payout came from, when the proof was created, and every market/policy it drove (see the [Proof detail screenshot](#-product-tour--screenshots) and [§5](#5-the-proof-record--what-it-actually-is)).
 - **Non-reversibility** — once a proof exists, the result is locked; there is no "undo settlement" path.
 - **Real capital at risk** — premiums, deposits, and payouts are actual SOL balances checked against the chain, not numbers a UI made up.
 
@@ -147,7 +234,7 @@ signature    = sha256(`sig:${merkleRoot}:${timestamp}`)
 
 …and inserts one `proof_records` row containing `proofHash`, `merkleRoot`, a `merklePath` array, `signature`, `validationStatus`, and a `settlementTxSig`.
 
-Every proof record is fully explorable in the app, not just in this doc: the **Proofs** page lists every record with its live validation status, and clicking one opens a **Proof detail view** (`/proofs/:id`) showing the full cryptographic artifact (hash, Merkle root, path, signature — each copyable), the exact match it commits to, and every market and insurance policy that was settled off that single proof, down to how many positions won, lost, and were claimed. That page *is* the audit trail this whole design is meant to produce.
+Every proof record is fully explorable in the app, not just in this doc: the **Proofs** page lists every record with its live validation status, and clicking one opens a **Proof detail view** (`/proofs/:id`) showing the full cryptographic artifact (hash, Merkle root, path, signature — each copyable), the exact match it commits to, and every market and insurance policy that was settled off that single proof, down to how many positions won, lost, and were claimed. That page *is* the audit trail this whole design is meant to produce — see the [Proofs screenshots](#-product-tour--screenshots) above.
 
 **What this gives you:** a tamper-evident, timestamped, content-addressed fingerprint of the exact result (teams + score) that was used to settle every market/policy for that match. Because it's a hash of the result, any later claim about "what actually happened" can be checked against it deterministically — if someone recomputes `sha256(matchId:home:away:score:score)` and it doesn't match the stored `proofHash`, the record has been tampered with or the result is wrong.
 
@@ -253,3 +340,11 @@ Stated plainly, for anyone evaluating this beyond a surface demo:
 - **Live match events are simulated, not sourced live**, until the TxLINE devnet key is upgraded to a tier that returns real scores/events (§6–§7). This is an external vendor/billing dependency, not a code limitation — the sync logic already prefers real data the instant it's available.
 - **Treasury-funded payouts assume a funded treasury.** If the treasury wallet runs dry, payouts fall back to a claimable `won`/`triggered` status rather than failing silently — but there's no automatic treasury refill mechanism; that's an operational concern for a real deployment.
 - **Governance has no on-chain execution step.** Proposal resolution is a transparent status record, not an autonomous trigger for a smart-contract action, because there is currently no governed contract for it to act on.
+
+---
+
+<div align="center">
+
+[⬆ Back to top](#-proofgoal)
+
+</div>
