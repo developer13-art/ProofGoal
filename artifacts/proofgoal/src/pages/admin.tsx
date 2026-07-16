@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
 import { useListMatches, useListMarkets, useListInsuranceProducts, useListGovernanceProposals, useListLiquidityPools } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,22 +14,67 @@ import {
 } from "lucide-react";
 
 const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || "proofgoal-admin";
+const ADMIN_STORAGE_KEY = "pg_admin_key";
 const API = "/api";
 
-function apiFetch(path: string, body?: object) {
+// ── Admin context ─────────────────────────────────────────────────────────────
+interface AdminContextType {
+  adminKey: string | null;
+  setAdminKey: (key: string | null) => void;
+}
+
+const AdminContext = createContext<AdminContextType | undefined>(undefined);
+
+function useAdminContext() {
+  const context = useContext(AdminContext);
+  if (!context) throw new Error("useAdminContext must be used within AdminProvider");
+  return context;
+}
+
+function AdminProvider({ children }: { children: ReactNode }) {
+  const [adminKey, setAdminKey] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(ADMIN_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
+
+  return (
+    <AdminContext.Provider value={{ adminKey, setAdminKey }}>
+      {children}
+    </AdminContext.Provider>
+  );
+}
+
+function apiFetch(path: string, body?: object, adminKey?: string | null) {
   return fetch(`${API}${path}`, {
     method: body ? "POST" : "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(path.startsWith("/admin") && adminKey ? { "x-admin-key": adminKey } : {}),
+    },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
 }
 
+// ── Hook to use apiFetch with admin context ────────────────────────────────────
+function useApiFetch() {
+  const { adminKey } = useAdminContext();
+  return useCallback((path: string, body?: object) => apiFetch(path, body, adminKey), [adminKey]);
+}
+
 // ── Auth gate ─────────────────────────────────────────────────────────────────
 function AuthGate({ onAuth }: { onAuth: () => void }) {
+  const { setAdminKey } = useAdminContext();
   const [pw, setPw] = useState("");
   const { toast } = useToast();
   const tryAuth = () => {
-    if (pw === ADMIN_KEY) { onAuth(); }
+    if (pw === ADMIN_KEY) {
+      try { localStorage.setItem(ADMIN_STORAGE_KEY, ADMIN_KEY); } catch {}
+      setAdminKey(ADMIN_KEY);
+      onAuth();
+    }
     else toast({ title: "Wrong password", variant: "destructive" });
   };
   return (
@@ -90,6 +135,7 @@ interface TreasuryInfo {
 }
 
 function TreasuryCard() {
+  const apiFetch = useApiFetch();
   const [treasury, setTreasury] = useState<TreasuryInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -103,7 +149,7 @@ function TreasuryCard() {
     } catch {
       setTreasury({ configured: false, address: null, balanceSol: 0, network: null, error: "Failed to reach server" });
     } finally { setLoading(false); }
-  }, []);
+  }, [apiFetch]);
 
   useEffect(() => {
     load();
@@ -145,6 +191,7 @@ function TreasuryCard() {
 
 // ── Main admin panel ──────────────────────────────────────────────────────────
 function AdminPanel() {
+  const apiFetch = useApiFetch();
   const { toast } = useToast();
   const [stats, setStats] = useState<Record<string, number> | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -165,7 +212,7 @@ function AdminPanel() {
   const loadStats = useCallback(async () => {
     const r = await apiFetch("/admin/stats");
     if (r.ok) setStats(await r.json());
-  }, []);
+  }, [apiFetch]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
   // ── Sync ────────────────────────────────────────────────────────────────────
@@ -358,6 +405,7 @@ function AdminPanel() {
 
 // ── Generic admin list table hook ─────────────────────────────────────────────
 function useAdminList<T>(path: string) {
+  const apiFetch = useApiFetch();
   const [rows, setRows] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
@@ -366,7 +414,7 @@ function useAdminList<T>(path: string) {
       const r = await apiFetch(path);
       if (r.ok) setRows(await r.json());
     } finally { setLoading(false); }
-  }, [path]);
+  }, [path, apiFetch]);
   useEffect(() => { load(); }, [load]);
   return { rows, loading, reload: load };
 }
@@ -844,12 +892,20 @@ function CreateLiquidityPoolForm({ onCreated }: { onCreated: () => void }) {
 
 // ── Page export ───────────────────────────────────────────────────────────────
 export function AdminPage() {
+  return (
+    <AdminProvider>
+      <AdminPageContent />
+    </AdminProvider>
+  );
+}
+
+function AdminPageContent() {
   const [authed, setAuthed] = useState(() => {
-    try { return localStorage.getItem("pg_admin_authed") === "1"; } catch { return false; }
+    try { return localStorage.getItem(ADMIN_STORAGE_KEY) === ADMIN_KEY; } catch { return false; }
   });
 
   const handleAuth = () => {
-    try { localStorage.setItem("pg_admin_authed", "1"); } catch {}
+    try { localStorage.setItem(ADMIN_STORAGE_KEY, ADMIN_KEY); } catch {}
     setAuthed(true);
   };
 
